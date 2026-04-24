@@ -18,14 +18,14 @@ jobs:
 
       # SAMPLE 1: Direct Usage (No Mapping)
       # Fast and easy for simple URLs
-      - name: Method 1: Direct Access
+      - name: Method 1 Direct Access
         run: |
           echo "Using Method 1 (Direct)"
           curl -f "${{ vars.STAGING_URL }}"
 
       # SAMPLE 2: Mapping to Env Var (Recommended)
       # Safer for scripts and complex variables
-      - name: Method 2: Mapped Variable
+      - name: Method 2 Mapped Variable
         env:
           TARGET_URL: ${{ vars.STAGING_URL }}
         run: |
