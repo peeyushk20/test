@@ -14,12 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # SAMPLE 1: Direct Usage (No Mapping)
-      # Fast and easy for simple URLs
-      - name: Method 1 Direct Access
-        run: |
-          echo "Using Method 1 (Direct)"
-          curl -f "${{ vars.STAGING_URL }}"
 
       # SAMPLE 2: Mapping to Env Var (Recommended)
       # Safer for scripts and complex variables
