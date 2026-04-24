@@ -3,29 +3,37 @@ name: Deploy
 on:
   push:
     branches: [main]
+    tags: ['v*'] # Ensures the workflow triggers on version tags too
 
 jobs:
   deploy-staging:
     name: 🚀 Staging
-    if: github.ref_type == 'branch'
+    # Runs on pushes to main that aren't tags
+    if: github.ref_type == 'branch' && github.ref_name == 'main'
     environment: staging
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. Simple Echo (Matches your working example)
       - name: 1. Echo Variable
         run: echo "✅ The Staging URL is set to ${{ vars.APP_URL }}"
 
-      # 2. Direct Curl
-      # Note: We use quotes around the variable to prevent shell errors
-      - name: 2. Direct Curl
+      - name: 2. Smoke test staging slot (with retries)
         run: |
-          echo "Attempting Direct Curl..."
-          curl -fL "${{ vars.APP_URL }}"
+          ATTEMPTS=0
+          MAX_ATTEMPTS=5
+          # Using the SLOT_URL variable for the warmup check
+          until curl --fail --silent --max-time 10 "${{ vars.SLOT_URL }}" || [ $ATTEMPTS -eq $MAX_ATTEMPTS ]; do
+            echo "Waiting for staging slot to warm up... (Attempt $((ATTEMPTS+1))/$MAX_ATTEMPTS)"
+            sleep 10
+            ATTEMPTS=$((ATTEMPTS+1))
+          done
+          
+          # Final check to fail the job if the slot never wakes up
+          echo "Final verification for ${{ vars.APP_URL }}..."
+          curl --fail --silent "${{ vars.APP_URL }}"
 
-      # 3. Mapped Env Curl (The cleanest/most robust way)
       - name: 3. Mapped Env Curl
         env:
           TARGET_URL: ${{ vars.APP_URL }}
@@ -37,7 +45,7 @@ jobs:
     name: 🔐 Await Approval
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    environment: production
+    environment: production # Requires manual approval in GitHub Environment settings
     steps:
       - run: echo "Approval granted for version ${{ github.ref_name }}"
 
@@ -48,7 +56,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Deploy to Production
         run: |
           echo "✅ Production version ${{ github.ref_name }}"
+          # Uses the PRODUCTION_API_ENDPOINT variable
           curl -fL "${{ vars.PRODUCTION_API_ENDPOINT }}"
