@@ -3,26 +3,37 @@ name: Deploy
 on:
   push:
     branches: [main]
+  push:
+    tags: ["v*.*.*"]
 
 jobs:
   deploy-staging:
     name: 🚀 Staging
     if: github.ref_type == 'branch'
-    runs-on: ubuntu-latest
     environment: staging
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 1. Simple Echo (Matches your working example)
+      - name: 1. Echo Variable
+        run: echo "✅ The Staging URL is set to ${{ vars.APP_URL }}"
 
-      # SAMPLE 2: Mapping to Env Var (Recommended)
-      # Safer for scripts and complex variables
-      - name: Method 2 Mapped Variable
-        env:
-          TARGET_URL: ${{ vars.STAGING_URL }}
+      # 2. Direct Curl
+      # Note: We use quotes around the variable to prevent shell errors
+      - name: 2. Direct Curl
         run: |
-          echo "Using Method 2 (Mapped)"
-          curl -f "$TARGET_URL"
+          echo "Attempting Direct Curl..."
+          curl -fL "${{ vars.APP_URL }}"
+
+      # 3. Mapped Env Curl (The cleanest/most robust way)
+      - name: 3. Mapped Env Curl
+        env:
+          TARGET_URL: ${{ vars.APP_URL }}
+        run: |
+          echo "Attempting Mapped Curl to $TARGET_URL"
+          curl -fL "$TARGET_URL"
 
   approve-production:
     name: 🔐 Await Approval
@@ -30,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - run: echo "Approval granted"
+      - run: echo "Approval granted for version ${{ github.ref_name }}"
 
   deploy-production:
     name: 🎉 Production
@@ -39,5 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Production Curl
-        run: curl -f "${{ vars.PROD_URL }}"
+      - name: Deploy to Production
+        run: |
+          echo "✅ Production version ${{ github.ref_name }}"
+          curl -fL "${{ vars.PRODUCTION_API_ENDPOINT }}"
