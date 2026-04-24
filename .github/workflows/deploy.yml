@@ -3,40 +3,49 @@ name: Deploy
 on:
   push:
     branches: [main]
+  push:
     tags: ["v*.*.*"]
 
 jobs:
   deploy-staging:
     name: 🚀 Staging
     if: github.ref_type == 'branch'
-    # Scope this job to the 'staging' environment
-    environment: staging
     runs-on: ubuntu-latest
+    environment: staging
     steps:
-      - name: Deploy to Staging
-        run: echo "✅ Deploying to ${{ vars.APP_URL }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # SAMPLE 1: Direct Usage (No Mapping)
+      # Fast and easy for simple URLs
+      - name: Method 1: Direct Access
+        run: |
+          echo "Using Method 1 (Direct)"
+          curl -f "${{ vars.STAGING_URL }}"
+
+      # SAMPLE 2: Mapping to Env Var (Recommended)
+      # Safer for scripts and complex variables
+      - name: Method 2: Mapped Variable
+        env:
+          TARGET_URL: ${{ vars.STAGING_URL }}
+        run: |
+          echo "Using Method 2 (Mapped)"
+          curl -f "$TARGET_URL"
 
   approve-production:
     name: 🔐 Await Approval
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
-    # This environment should have 'Required Reviewers' enabled in GitHub Settings
     environment: production
     steps:
-      - run: echo "Approval granted for version ${{ github.ref_name }}"
+      - run: echo "Approval granted"
 
   deploy-production:
     name: 🎉 Production
     if: github.ref_type == 'tag'
     needs: approve-production
     runs-on: ubuntu-latest
-    # CRITICAL: You must declare the environment here too to access its variables
     environment: production
     steps:
-      - name: Deploy to Production
-        run: |
-          echo "✅ This is PRODUCTION — version ${{ github.ref_name }}"
-          echo "Targeting API: ${{ vars.PRODUCTION_API_ENDPOINT }}"
-        env:
-          # Example of mapping a scoped var to a shell env var
-          API_URL: ${{ vars.PRODUCTION_API_ENDPOINT }}
+      - name: Production Curl
+        run: curl -f "${{ vars.PROD_URL }}"
